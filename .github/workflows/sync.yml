@@ -1,0 +1,39 @@
+name: Sync Fork with Upstream (Ignore Sync Workflow)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *' # Every day at 3AM UTC
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout forked repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false  # we’ll use a PAT if needed
+
+      - name: Set up Git
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+
+      - name: Add upstream and fetch
+        run: |
+          git remote add upstream https://github.com/alphacep/vosk-server.git
+          git fetch upstream
+
+      - name: Merge upstream into fork, excluding sync workflow
+        run: |
+          git checkout master
+
+          # Save your current sync file
+          cp .github/workflows/sync.yml /tmp/fork-sync.yml || true
+
+          # Merge everything
+          git merge master --no-edit || echo "Nothing to merge"
+
+          # Restore your sync file if it was overwritten
+          cp /tmp/fork-sync.yml .github/workflows/sync.yml || true
